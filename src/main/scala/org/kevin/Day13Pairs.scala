@@ -10,7 +10,14 @@ object Day13Pairs extends App {
 
   val lines: List[String] = Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("pairs.txt")).getLines().toList
 
-  case class Packet(data: mutable.MutableList[Any])
+  case class Packet(data: mutable.MutableList[Any]) extends Ordered[Packet] {
+    override def compare(that: Packet): Int = {
+      compareList(this.data, that.data) match {
+        case Some(value) => if( value) -1 else 1
+        case None => 0
+      }
+    }
+  }
 
   case class Pair(indexFromOne: Int, first: Packet, second: Packet)
 
@@ -29,6 +36,16 @@ object Day13Pairs extends App {
 
   println(s"Ans p1  ${pairsGood.map(_.indexFromOne).sum}")
 
+
+  // p2
+  val divider1 = parsePacket("[[2]]")
+  val divider2 = parsePacket("[[6]]")
+
+  val fullList = Packet(divider1) :: Packet(divider2):: pairs.flatMap( pair => List(pair.first, pair.second))
+
+  fullList.sorted.zipWithIndex.foreach( xy =>  println(xy._1, xy._2 +1 ))
+  // (Packet(MutableList(MutableList(6))),210)
+  //(Packet(MutableList(MutableList(2))),133)
 
   def compareList(firstList: mutable.MutableList[Any], secondList: mutable.MutableList[Any], checkLength: Boolean = true): Option[Boolean] = {
     var result: Option[Boolean] = None

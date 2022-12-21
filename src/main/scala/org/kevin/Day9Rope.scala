@@ -40,56 +40,80 @@ object Day9Rope extends App {
   }
 
   val moves = lines.map(parseLine(_))
-  var headSeq: Int = 0
-  var tailSeq: Int = 0
-  val startHead = Position(headSeq, Point(0, 0))
-  val startTail = Position(tailSeq, Point(0, 0))
+
+  val startHead = Position(0, Point(0, 0))
+  val startTail = Position(0, Point(0, 0))
 
   val headList = mutable.MutableList(startHead)
   val tailList = mutable.MutableList(startTail)
 
   def signedOne(nonZero: Int) = if (nonZero > 0) 1 else -1
 
-  def moveTailIfNecessary(newHead: Position): Unit = {
-    val currentTail = tailList.head
-    val xDiff = newHead.point.x - currentTail.point.x
-    val yDiff = newHead.point.y - currentTail.point.y
+  def moveTailIfNecessary(newHead: Position, tails: List[mutable.MutableList[Position]]): Unit = {
+    def innerMove(currentHead: Position, tList: mutable.MutableList[Position]): Boolean = {
+      val currentTail = tList.head
+      val xDiff = currentHead.point.x - currentTail.point.x
+      val yDiff = currentHead.point.y - currentTail.point.y
 
-    if (xDiff == 0) {
-      if (yDiff == 0) {
-        // Nothing, overlapping
+      if (xDiff == 0) {
+        if (yDiff == 0) {
+          // Nothing, overlapping
+          false
+        }
+        else if (Math.abs(yDiff) == 1) {
+          // do nothing
+          false
+        }
+        else {
+
+          val newTail = Position(currentTail.order + 1, Point(currentTail.point.x, currentTail.point.y + signedOne(yDiff)))
+          tList.+=:(newTail)
+          true
+
+        }
       }
-      else if (Math.abs(yDiff) == 1) {
-        // do nothing
+      else if (yDiff == 0) {
+        if (Math.abs(xDiff) > 1) {
+          val newTail = Position(currentTail.order + 1, Point(currentTail.point.x + signedOne(xDiff), currentTail.point.y))
+          tList.+=:(newTail)
+          true
+        }
+        else {
+          false
+        }
       }
       else {
+        // not on same row or column
 
-        val newTail = Position(currentTail.order + 1, Point(currentTail.point.x , currentTail.point.y + signedOne(yDiff)) )
-        tailList.+=:(newTail)
+        if (Math.abs(xDiff) >= 2 || Math.abs(yDiff) >= 2) {
+          val newTail = Position(currentTail.order + 1, Point(currentTail.point.x + signedOne(xDiff), currentTail.point.y + signedOne(yDiff)))
+          tList.+=:(newTail)
+          true
+        }
+        else {
+          false
+        }
+
 
       }
     }
-    else if (yDiff == 0) {
-      if (Math.abs(xDiff) > 1) {
-        val newTail = Position(currentTail.order + 1, Point(currentTail.point.x + signedOne(xDiff), currentTail.point.y))
-        tailList.+=:(newTail)
+
+    val iter = tails.iterator
+    var currentHead = newHead
+    var moved = true;
+    while (iter.hasNext) {
+      val tails = iter.next()
+      if (moved) {
+        moved = innerMove(currentHead, tails)
       }
-    }
-    else {
-      // not on same row or column
-
-      if (Math.abs(xDiff) >= 2 || Math.abs(yDiff) >= 2) {
-        val newTail = Position(currentTail.order + 1, Point(currentTail.point.x + signedOne(xDiff), currentTail.point.y + signedOne(yDiff)))
-        tailList.+=:(newTail)
-      }
-
-
+      currentHead = tails.head
     }
 
-   // println( s"movetail if necc: head ${headList.head}   tail ${tailList.head}")
+
+    // println( s"movetail if necc: head ${headList.head}   tail ${tailList.head}")
   }
 
-  def makeMove(move: Move): Unit = {
+  def makeMove(move: Move, tails: List[mutable.MutableList[Position]]): Unit = {
     move.direction match {
       case To.Left => {
         val range = 1 to move.size
@@ -97,7 +121,7 @@ object Day9Rope extends App {
           val cur = headList.head
           val newPos = Position(cur.order + 1, Point(cur.point.x, cur.point.y - 1))
           headList.+=:(newPos)
-          moveTailIfNecessary(newPos)
+          moveTailIfNecessary(newPos, tails)
         })
       }
       case To.Right => {
@@ -106,7 +130,7 @@ object Day9Rope extends App {
           val cur = headList.head
           val newPos = Position(cur.order + 1, Point(cur.point.x, cur.point.y + 1))
           headList.+=:(newPos)
-          moveTailIfNecessary(newPos)
+          moveTailIfNecessary(newPos, tails)
         })
       }
       case org.kevin.To.Top => {
@@ -115,7 +139,7 @@ object Day9Rope extends App {
           val cur = headList.head
           val newPos = Position(cur.order + 1, Point(cur.point.x - 1, cur.point.y))
           headList.+=:(newPos)
-          moveTailIfNecessary(newPos)
+          moveTailIfNecessary(newPos, tails)
         })
       }
       case org.kevin.To.Bottom
@@ -126,7 +150,7 @@ object Day9Rope extends App {
           val cur = headList.head
           val newPos = Position(cur.order + 1, Point(cur.point.x + 1, cur.point.y))
           headList.+=:(newPos)
-          moveTailIfNecessary(newPos)
+          moveTailIfNecessary(newPos, tails)
         })
       }
 
@@ -136,9 +160,21 @@ object Day9Rope extends App {
   }
 
 
-  moves.foreach(makeMove(_))
+ // moves.foreach(makeMove(_, List(tailList)))
 
-//  tailList.foreach(println(_))
+  //  tailList.foreach(println(_))
 
-  println(s"Ans1 = ${tailList.groupBy( _.point).toList.size}")
+ // println(s"Ans1 = ${tailList.groupBy(_.point).toList.size}")
+
+
+  val tails = (0 to 8).map(x => mutable.MutableList(startTail)).toList
+
+  moves.foreach(makeMove(_, tails))
+
+  tails.foreach(x => println(x.groupBy(_.point).toList.size))
+
+  println(s"Ans1 = ${tails.head.groupBy(_.point).toList.size}")
+
+  println(s"Ans2 = ${tails.last.groupBy(_.point).toList.size}")
+
 }
